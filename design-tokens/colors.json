@@ -1,0 +1,84 @@
+{
+  "$schema": "Design tokens de cor — Sistema de Apuração de Transgressões Disciplinares (FAB)",
+  "$source": "Manual de Identidade Visual da FAB (30/01/18), p.9 — MARCA | CORES INSTITUCIONAIS",
+  "$note": "primary.600 é a única cor com valor oficial mandatório (Pantone 286 / #0033A0). Os demais tons da escala são derivados por mistura com branco/preto para uso em UI (fundos, hover, texto, bordas) e NÃO substituem a cor oficial em aplicações da marca (logotipo, papelaria, documentos oficiais).",
+
+  "primary": {
+    "$description": "Azul institucional FAB (Pantone 286). 600 = valor oficial exato.",
+    "50":  "#F2F5FA",
+    "100": "#E6EBF6",
+    "200": "#C7D2EA",
+    "300": "#9EB1DB",
+    "400": "#6B89C8",
+    "500": "#3860B5",
+    "600": "#0033A0",
+    "700": "#002B88",
+    "800": "#00236D",
+    "900": "#001B53",
+    "950": "#00133D",
+    "official": {
+      "hex": "#0033A0",
+      "pantone": "286",
+      "rgb": "0, 51, 160",
+      "cmyk": "100, 68, 0, 37"
+    }
+  },
+
+  "neutral": {
+    "$description": "Cinza-azulado (slate) para texto, bordas e fundos neutros — harmoniza com o matiz do azul institucional.",
+    "50":  "#FAFBFB",
+    "100": "#F4F4F5",
+    "200": "#E8EAEB",
+    "300": "#D6D8DC",
+    "400": "#B0B4BA",
+    "500": "#8E949D",
+    "600": "#747A85",
+    "700": "#5D6572",
+    "800": "#46505E",
+    "900": "#343E4F",
+    "950": "#293445"
+  },
+
+  "white": {
+    "value": "#FFFFFF",
+    "$description": "Branco institucional (Pantone White) — segunda cor oficial do manual.",
+    "official": {
+      "hex": "#FFFFFF",
+      "pantone": "White",
+      "rgb": "255, 255, 255",
+      "cmyk": "0, 0, 0, 0"
+    }
+  },
+
+  "semantic": {
+    "$description": "Cores de status para uso em UI (não fazem parte da marca FAB — convenção de produto para sinalizar estados de processos/transgressões).",
+    "danger": {
+      "$usage": "Transgressão grave, indeferido, prazo vencido, exclusão",
+      "bg":     "#FCE9E9",
+      "border": "#F5C2C2",
+      "base":   "#DC2626",
+      "text":   "#A51C1C"
+    },
+    "warning": {
+      "$usage": "Pendente, aguardando manifestação, prazo próximo do vencimento",
+      "bg":     "#FBF1E6",
+      "border": "#F0D3A6",
+      "base":   "#D97706",
+      "text":   "#A35904"
+    },
+    "success": {
+      "$usage": "Concluído, arquivado, homologado",
+      "bg":     "#E8F6ED",
+      "border": "#B9E4C7",
+      "base":   "#16A34A",
+      "text":   "#107A38"
+    },
+    "info": {
+      "$usage": "Em andamento, em trâmite, em análise",
+      "bg":     "#E6EBF6",
+      "border": "#C7D2EA",
+      "base":   "#3860B5",
+      "text":   "#002B88"
+    }
+  }
+}
