@@ -1,0 +1,493 @@
+// Themis — Sistema de Apuração de Transgressões Disciplinares
+// Domínio: PATD (Processo Administrativo de Transgressão Disciplinar), FAB.
+// Fonte normativa: RDAER (Decreto nº 76.322/1975) e ICA 111-6/2021.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =========================================================================
+// ORGANIZAÇÃO MILITAR E PESSOAL
+// =========================================================================
+
+model OrganizacaoMilitar {
+  id     String @id @default(cuid())
+  sigla  String @unique
+  nome   String
+  cidade String
+  uf     String
+
+  militares Militar[]
+  processos Processo[]
+
+  criadoEm DateTime @default(now())
+
+  @@map("organizacoes_militares")
+}
+
+enum Comportamento {
+  EXCEPCIONAL
+  OTIMO
+  BOM
+  INSUFICIENTE
+  MAU
+}
+
+model Militar {
+  id            String         @id @default(cuid())
+  saram         String         @unique
+  nome          String
+  postoGrad     String
+  quadro        String         @default("")
+  secao         String
+  comportamento Comportamento?
+
+  omId String
+  om   OrganizacaoMilitar @relation(fields: [omId], references: [id])
+
+  conta Conta?
+
+  processosComoArrolado          Processo[] @relation("ProcessoArrolado")
+  processosComoApurador          Processo[] @relation("ProcessoApurador")
+  processosComoComandante        Processo[] @relation("ProcessoComandante")
+  documentosDesignadosComandante Processo[] @relation("ProcessoAutorAbertura")
+
+  assinaturas Assinatura[]
+  eventos     Evento[]
+  inquiricoes Inquiricao[]
+  anexosApoio AnexoApoio[]
+  decisoesDecididas Decisao[]
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@index([omId])
+  @@map("militares")
+}
+
+// Papéis funcionais atribuíveis (organizacionais, não contextuais).
+// APURADOR e ARROLADO nunca são gravados aqui: são sempre derivados da
+// relação do militar com um Processo específico (processo.apuradorId /
+// processo.arroladoId), pois qualquer militar pode ser designado apurador
+// ou se tornar arrolado em um processo concreto.
+enum PerfilFuncional {
+  COMANDANTE
+  ADMIN
+}
+
+model Conta {
+  id        String  @id @default(cuid())
+  militarId String  @unique
+  militar   Militar @relation(fields: [militarId], references: [id])
+
+  senhaHash       String
+  deveTrocarSenha Boolean @default(true)
+  ativa           Boolean @default(true)
+
+  perfisFuncionais PerfilFuncional[] @default([])
+
+  // Flag exclusiva de ambiente de testes: concede visibilidade/ação como se
+  // a conta possuísse os 4 perfis (Comandante, Admin, Oficial Apurador,
+  // Militar Arrolado) para permitir percorrer o fluxo completo sozinho
+  // antes de existirem contas reais para cada papel. NUNCA deve ser
+  // habilitada em produção com dados reais de processos — ver README.
+  acessoTotalTeste Boolean @default(false)
+
+  ultimoLoginEm DateTime?
+  criadoEm      DateTime  @default(now())
+  atualizadoEm  DateTime  @updatedAt
+
+  logsAcesso LogAcesso[]
+
+  @@map("contas")
+}
+
+model LogAcesso {
+  id          String   @id @default(cuid())
+  contaId     String
+  conta       Conta    @relation(fields: [contaId], references: [id])
+  em          DateTime @default(now())
+  ip          String?
+  userAgent   String?
+  sucesso     Boolean
+  motivoFalha String?
+
+  @@index([contaId])
+  @@map("logs_acesso")
+}
+
+// =========================================================================
+// DOMÍNIO: os 10 estados do PATD (ICA 111-6/2021)
+// =========================================================================
+
+enum StatusProcesso {
+  PARA_ABERTURA
+  A_CIENTIFICAR
+  AGUARDANDO_DEFESA
+  EM_APURACAO
+  AGUARDANDO_DESPACHO
+  AGUARDANDO_DECISAO
+  CIENCIA_DA_DECISAO
+  RECONSIDERACAO_EM_ANALISE
+  CIENCIA_NOVA_DECISAO
+  FINALIZADO
+}
+
+enum OrigemTipo {
+  OFICIO
+  MEMORANDO
+  PARTE_DISCIPLINAR
+  RELATO_REDUZIDO_A_TERMO
+  OUTRO
+}
+
+enum Classificacao {
+  LEVE
+  MEDIA
+  GRAVE
+}
+
+enum TipoPunicao {
+  ADVERTENCIA
+  REPREENSAO
+  DETENCAO
+  PRISAO
+  PRISAO_EM_SEPARADO
+}
+
+enum TipoDecisao {
+  PUNICAO
+  ARQUIVAMENTO
+}
+
+enum ConclusaoRelatorio {
+  PROCEDENTE
+  IMPROCEDENTE
+}
+
+enum DesfechoReconsideracao {
+  DEFERIDO
+  PARCIALMENTE_DEFERIDO
+  INDEFERIDO
+}
+
+enum TipoInquiricao {
+  ARROLADO
+  TESTEMUNHA
+}
+
+model Processo {
+  id     String @id @default(cuid())
+  numero String @unique
+
+  omId String
+  om   OrganizacaoMilitar @relation(fields: [omId], references: [id])
+
+  status StatusProcesso @default(PARA_ABERTURA)
+
+  arroladoId String
+  arrolado   Militar @relation("ProcessoArrolado", fields: [arroladoId], references: [id])
+
+  apuradorId String?
+  apurador   Militar? @relation("ProcessoApurador", fields: [apuradorId], references: [id])
+
+  comandanteId String
+  comandante   Militar @relation("ProcessoComandante", fields: [comandanteId], references: [id])
+
+  abertoPorId String
+  abertoPor   Militar @relation("ProcessoAutorAbertura", fields: [abertoPorId], references: [id])
+
+  // Origem (documento que deu causa à abertura)
+  origemTipo   OrigemTipo
+  origemNumero String
+  origemData   DateTime   @db.Date
+
+  relatoFato String
+  itensArt10 String[] // ids do catálogo do art. 10 do RDAER
+
+  autuadoEm            DateTime? @db.Date
+  cienciaEm            DateTime? @db.Date
+  recebidoApuradorEm   DateTime? @db.Date
+  recebidoComandanteEm DateTime? @db.Date
+  cienciaDecisaoEm     DateTime? @db.Date
+  cienciaNovaDecisaoEm DateTime? @db.Date
+  finalizadoEm         DateTime? @db.Date
+
+  defesa         Defesa?
+  relatorio      RelatorioApuracao?
+  decisao        Decisao?
+  reconsideracao PedidoReconsideracao?
+
+  documentos  Documento[]
+  eventos     Evento[]
+  prazos      Prazo[]
+  inquiricoes Inquiricao[]
+  anexosApoio AnexoApoio[]
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@index([omId])
+  @@index([arroladoId])
+  @@index([apuradorId])
+  @@index([status])
+  @@map("processos")
+}
+
+model Defesa {
+  id         String   @id @default(cuid())
+  processoId String   @unique
+  processo   Processo @relation(fields: [processoId], references: [id])
+
+  apresentada   Boolean   @default(false)
+  preclusa      Boolean   @default(false)
+  texto         String?
+  apresentadaEm DateTime? @db.Date
+
+  criadoEm DateTime @default(now())
+
+  @@map("defesas")
+}
+
+model RelatorioApuracao {
+  id         String   @id @default(cuid())
+  processoId String   @unique
+  processo   Processo @relation(fields: [processoId], references: [id])
+
+  conclusao           ConclusaoRelatorio
+  classificacao       Classificacao?
+  itensConfirmados    String[]
+  recomendacaoPunicao TipoPunicao?
+  recomendacaoDias    Int?
+  atenuantes          String[]
+  agravantes          String[]
+  fundamentacao       String
+  emitidoEm           DateTime           @db.Date
+
+  criadoEm DateTime @default(now())
+
+  @@map("relatorios_apuracao")
+}
+
+model Decisao {
+  id         String   @id @default(cuid())
+  processoId String   @unique
+  processo   Processo @relation(fields: [processoId], references: [id])
+
+  tipo          TipoDecisao
+  classificacao Classificacao?
+  punicao       TipoPunicao?
+  dias          Int?
+  atenuantes    String[]
+  agravantes    String[]
+  fundamentacao String
+
+  // Se a autoridade concorda com a conclusão do relatório do apurador —
+  // compõe o texto legal da decisão ("concorda-se"/"diverge-se").
+  concordaComRelatorio Boolean @default(true)
+  // Comportamento resultante do militar após a punição (RDAER), quando a
+  // autoridade opta por registrar a alteração no mesmo ato decisório.
+  comportamentoResultante Comportamento?
+
+  decididoPorId String
+  decididoPor   Militar  @relation(fields: [decididoPorId], references: [id])
+  decididoEm    DateTime @db.Date
+
+  // Preenchidos quando a decisão é fruto de julgamento de reconsideração
+  ehJulgamentoReconsideracao Boolean @default(false)
+
+  criadoEm DateTime @default(now())
+
+  @@map("decisoes")
+}
+
+model PedidoReconsideracao {
+  id         String   @id @default(cuid())
+  processoId String   @unique
+  processo   Processo @relation(fields: [processoId], references: [id])
+
+  razoes   String
+  pedidoEm DateTime @db.Date
+
+  desfecho      DesfechoReconsideracao?
+  fundamentacao String?
+  decididoEm    DateTime?               @db.Date
+
+  criadoEm DateTime @default(now())
+
+  @@map("pedidos_reconsideracao")
+}
+
+model Inquiricao {
+  id         String   @id @default(cuid())
+  processoId String
+  processo   Processo @relation(fields: [processoId], references: [id])
+
+  tipo           TipoInquiricao
+  nomeInquirido  String
+  postoInquirido String
+  texto          String
+
+  autorId String
+  autor   Militar @relation(fields: [autorId], references: [id])
+
+  registradoEm DateTime @default(now())
+
+  @@index([processoId])
+  @@map("inquiricoes")
+}
+
+// =========================================================================
+// DOCUMENTOS, ASSINATURA ELETRÔNICA E TRILHA DE AUDITORIA
+// =========================================================================
+
+enum AnexoTipo {
+  ORIGEM
+  B
+  C
+  D
+  E
+  F
+  G
+  H
+  I
+  J
+  K
+  M
+  Q
+}
+
+model Documento {
+  id         String   @id @default(cuid())
+  processoId String
+  processo   Processo @relation(fields: [processoId], references: [id])
+
+  anexo  AnexoTipo
+  titulo String
+  dados  Json      @default("{}")
+
+  criadoEm DateTime @default(now())
+
+  assinaturas Assinatura[]
+
+  @@index([processoId])
+  @@map("documentos")
+}
+
+model Assinatura {
+  id          String    @id @default(cuid())
+  documentoId String
+  documento   Documento @relation(fields: [documentoId], references: [id])
+
+  signatarioId String
+  signatario   Militar @relation(fields: [signatarioId], references: [id])
+
+  // Papel exercido no ato (ex.: "Militar Arrolado", "Oficial Apurador",
+  // "Autoridade competente") — pode divergir do perfil funcional da conta.
+  papel String
+
+  assinadoEm DateTime @default(now())
+  // Hash SHA-256 do conteúdo do documento no momento da assinatura +
+  // protocolo, para fins de integridade — assinatura eletrônica avançada
+  // nos termos do art. 4º da Lei nº 14.063, de 23 de setembro de 2020.
+  hash       String
+  protocolo  String
+
+  @@index([documentoId])
+  @@map("assinaturas")
+}
+
+model Evento {
+  id         String   @id @default(cuid())
+  processoId String
+  processo   Processo @relation(fields: [processoId], references: [id])
+
+  em          DateTime @default(now())
+  autorId     String
+  autor       Militar  @relation(fields: [autorId], references: [id])
+  autorPerfil String // rótulo do perfil sob o qual o ato foi praticado
+
+  acao    String
+  detalhe String
+  hash    String
+
+  @@index([processoId])
+  @@map("eventos")
+}
+
+// =========================================================================
+// PRAZOS (motor de dias úteis, ICA 111-6, item 7.2)
+// =========================================================================
+
+enum PrazoTipo {
+  DEFESA
+  RELATORIO
+  DECISAO
+  RECONSIDERACAO
+}
+
+enum ContagemPrazo {
+  UTEIS
+  CORRIDOS
+}
+
+enum StatusPrazo {
+  EM_CURSO
+  PRORROGADO
+  CUMPRIDO
+}
+
+model Prazo {
+  id         String   @id @default(cuid())
+  processoId String
+  processo   Processo @relation(fields: [processoId], references: [id])
+
+  tipo       PrazoTipo
+  inicioEm   DateTime      @db.Date
+  venceEm    DateTime      @db.Date
+  contagem   ContagemPrazo
+  quantidade Int
+
+  status        StatusPrazo @default(EM_CURSO)
+  prorrogadoAte DateTime?   @db.Date
+  cumpridoEm    DateTime?   @db.Date
+
+  criadoEm DateTime @default(now())
+
+  @@index([processoId])
+  @@map("prazos")
+}
+
+// =========================================================================
+// ANEXOS DE APOIO (evidências enviadas pelo usuário)
+// =========================================================================
+
+model AnexoApoio {
+  id         String   @id @default(cuid())
+  processoId String
+  processo   Processo @relation(fields: [processoId], references: [id])
+
+  // Rótulo do ato ao qual o anexo se vincula (ex.: "DEFESA", "INQUIRICAO").
+  origem String
+
+  nome         String
+  tamanhoBytes Int
+  tipoMime     String
+
+  // Referência ao objeto no armazenamento externo (ex.: Supabase Storage).
+  // Ficam nulos enquanto o backend de armazenamento não estiver configurado.
+  storageProvider String?
+  storageKey      String?
+
+  enviadoPorId String
+  enviadoPor   Militar  @relation(fields: [enviadoPorId], references: [id])
+  enviadoEm    DateTime @default(now())
+
+  @@index([processoId])
+  @@map("anexos_apoio")
+}
