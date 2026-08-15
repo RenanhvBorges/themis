@@ -1,0 +1,50 @@
+/* GERADO POR scripts/gerar-tema.mjs — NÃO EDITAR À MÃO.
+ * Fonte: design-tokens/colors.json
+ * Manual de Identidade Visual da FAB (30/01/18), p.9 — MARCA | CORES INSTITUCIONAIS
+ */
+
+@theme {
+  /* Azul institucional FAB (Pantone 286). 600 = valor oficial exato. */
+  --color-primary-50: #F2F5FA;
+  --color-primary-100: #E6EBF6;
+  --color-primary-200: #C7D2EA;
+  --color-primary-300: #9EB1DB;
+  --color-primary-400: #6B89C8;
+  --color-primary-500: #3860B5;
+  --color-primary-600: #0033A0;
+  --color-primary-700: #002B88;
+  --color-primary-800: #00236D;
+  --color-primary-900: #001B53;
+  --color-primary-950: #00133D;
+
+  /* Cinza-azulado (slate) para texto, bordas e fundos neutros — harmoniza com o matiz do azul institucional. */
+  --color-neutral-50: #FAFBFB;
+  --color-neutral-100: #F4F4F5;
+  --color-neutral-200: #E8EAEB;
+  --color-neutral-300: #D6D8DC;
+  --color-neutral-400: #B0B4BA;
+  --color-neutral-500: #8E949D;
+  --color-neutral-600: #747A85;
+  --color-neutral-700: #5D6572;
+  --color-neutral-800: #46505E;
+  --color-neutral-900: #343E4F;
+  --color-neutral-950: #293445;
+
+  /* Cores de status — convenção de produto, fora do manual de marca */
+  --color-danger-bg: #FCE9E9;
+  --color-danger-border: #F5C2C2;
+  --color-danger-base: #DC2626;
+  --color-danger-text: #A51C1C;
+  --color-warning-bg: #FBF1E6;
+  --color-warning-border: #F0D3A6;
+  --color-warning-base: #D97706;
+  --color-warning-text: #A35904;
+  --color-success-bg: #E8F6ED;
+  --color-success-border: #B9E4C7;
+  --color-success-base: #16A34A;
+  --color-success-text: #107A38;
+  --color-info-bg: #E6EBF6;
+  --color-info-border: #C7D2EA;
+  --color-info-base: #3860B5;
+  --color-info-text: #002B88;
+}

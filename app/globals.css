@@ -1,0 +1,60 @@
+@import "tailwindcss";
+@import "./tema.css";
+
+/* Papéis de UI — mapeiam os tokens de cor para funções na interface.
+   Trocar aqui, não nas telas. Espelha design-tokens/tokens.css. */
+@theme {
+  --color-bg-app: var(--color-neutral-50);
+  --color-bg-surface: #ffffff;
+  --color-bg-header: var(--color-primary-950);
+  --color-border-base: var(--color-neutral-200);
+
+  --font-sans: var(--fonte-interface), system-ui, sans-serif;
+  --font-documento: "Times New Roman", Times, serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--color-neutral-50);
+  color: var(--color-neutral-900);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Foco visível e consistente — RNF-05 (usabilidade) */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primary-400);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ---------- Impressão: só o documento vai para o papel/PDF ---------- */
+@media print {
+  @page {
+    size: A4;
+    margin: 18mm 20mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  [data-nao-imprimir] {
+    display: none !important;
+  }
+
+  [data-folha] {
+    box-shadow: none !important;
+    border: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  [data-quebra-pagina] {
+    break-before: page;
+  }
+}
