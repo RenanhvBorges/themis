@@ -79,7 +79,10 @@ Quatro perfis — `COMANDANTE`, `ADMIN`, `APURADOR`, `ARROLADO`
 (`lib/domain/rbac.ts`):
 
 - **COMANDANTE** e **ADMIN** são papéis funcionais **concedidos** à conta
-  (`Conta.perfisFuncionais`) — refletem um cargo/função real na OM.
+  (`Conta.perfisFuncionais`) — refletem um cargo/função real na OM. O Admin
+  concede/revoga esses dois perfis e ativa/desativa contas pela tela
+  "Usuários" (`/usuarios`), que também é onde novos militares/contas são
+  cadastrados (`lib/actions/usuarios.ts`).
 - **APURADOR** e **ARROLADO** **nunca são concedidos**: são sempre
   derivados da relação do militar com um processo específico
   (`processo.apuradorId` / `processo.arroladoId`), porque qualquer militar
@@ -101,8 +104,8 @@ O `prisma/seed.ts` cadastra **apenas**:
 
 Não há outros militares/contas fictícias — de propósito, para não inventar
 identidades de terceiros. Para testar o fluxo com mais de uma pessoa real,
-cadastre novos militares/contas (ainda não há tela de administração de
-usuários — ver checklist).
+cadastre novos militares/contas pela tela de administração (Admin →
+"Usuários", em `/usuarios`).
 
 ## Verificação de ponta a ponta já realizada
 
@@ -137,8 +140,10 @@ de operar com processos reais de militares, faltam:
 ### Identidade e acesso
 - [ ] Cadastrar uma conta por titular de função real e **desligar
       `acessoTotalTeste`** da conta de homologação (ou removê-la).
-- [ ] Construir uma tela de administração de militares/contas (hoje só
-      existe o seed script).
+- [x] Tela de administração de militares/contas (Admin → `/usuarios`):
+      cadastro de militar + conta (senha inicial = SARAM) e edição de
+      perfis funcionais/ativação da conta. Falta ainda: edição de dados
+      cadastrais de um militar já existente e exclusão de conta.
 - [ ] Avaliar integração real com SARAM/SIGPES para cadastro/autenticação
       federada — está fora do escopo atual, cadastro é manual (como já era
       o caso no protótipo aprovado).
@@ -193,13 +198,14 @@ app/                        Rotas (App Router)
   (app)/                    Shell autenticado (sidebar + topbar)
     painel/                 Dashboard (só Comandante)
     processos/               Lista, novo processo, detalhe
+    usuarios/                Lista e cadastro de militares/contas (só Admin)
   processos/[id]/documentos/[docId]/   Visualizador de documento (sem sidebar, imprimível)
 components/                 UI (formulários de ação, trilha, chips, documentos/)
 lib/
   domain/                   Regras de negócio puras (prazos, estados, RBAC, transições, catálogos)
-  actions/                  Server Actions (auth, processos) — RBAC reforçado no servidor
+  actions/                  Server Actions (auth, processos, usuarios) — RBAC reforçado no servidor
   auth/                     Sessão, senha
-  queries/                  Leituras compostas (painel, lista, detalhe)
+  queries/                  Leituras compostas (painel, lista, detalhe, usuários)
 prisma/
   schema.prisma             Modelo de dados completo
   seed.ts                   Seed de homologação

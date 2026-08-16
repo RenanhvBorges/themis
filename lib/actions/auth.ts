@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { conferirSenha, gerarHashSenha, validarNovaSenha } from "@/lib/auth/senha";
 import { COOKIE_OPCOES, SESSION_COOKIE, criarTokenSessao } from "@/lib/auth/session";
 import { contaAtual } from "@/lib/auth/current";
+import { saramValido } from "@/lib/domain/militar";
 
 export interface LoginState {
   erro?: string;
@@ -13,10 +14,6 @@ export interface LoginState {
 
 const JANELA_BLOQUEIO_MIN = 15;
 const MAX_TENTATIVAS = 5;
-
-function saramValido(saram: string): boolean {
-  return /^\d{6,8}$/.test(saram);
-}
 
 export async function loginAction(_prevState: LoginState, formData: FormData): Promise<LoginState> {
   const saram = String(formData.get("saram") ?? "").trim();
