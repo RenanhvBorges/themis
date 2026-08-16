@@ -4,13 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "./icons";
 import type { ContaAtual } from "@/lib/auth/current";
-import { podeAbrirProcesso, podeVerPainel } from "@/lib/domain/rbac";
+import { podeAbrirProcesso, podeGerenciarUsuarios, podeVerPainel } from "@/lib/domain/rbac";
 import { logoutAction } from "@/lib/actions/auth";
 
 interface ItemNav {
   href: string;
   rotulo: string;
-  icone: "painel" | "processos" | "mais";
+  icone: "painel" | "processos" | "mais" | "usuario";
   visivel: (conta: ContaAtual) => boolean;
 }
 
@@ -18,6 +18,7 @@ const ITENS_NAV: ItemNav[] = [
   { href: "/painel", rotulo: "Painel", icone: "painel", visivel: podeVerPainel },
   { href: "/processos", rotulo: "Processos", icone: "processos", visivel: () => true },
   { href: "/processos/novo", rotulo: "Novo processo", icone: "mais", visivel: podeAbrirProcesso },
+  { href: "/usuarios", rotulo: "Usuários", icone: "usuario", visivel: podeGerenciarUsuarios },
 ];
 
 export function Sidebar({ conta, omSigla }: { conta: ContaAtual; omSigla: string }) {
@@ -39,7 +40,13 @@ export function Sidebar({ conta, omSigla }: { conta: ContaAtual; omSigla: string
           <Link
             key={it.href}
             href={it.href}
-            className={`nav-link${pathname === it.href || (it.href === "/processos" && pathname.startsWith("/processos/") && pathname !== "/processos/novo") ? " active" : ""}`}
+            className={`nav-link${
+              pathname === it.href ||
+              (it.href === "/processos" && pathname.startsWith("/processos/") && pathname !== "/processos/novo") ||
+              (it.href === "/usuarios" && pathname.startsWith("/usuarios/"))
+                ? " active"
+                : ""
+            }`}
           >
             <Icon name={it.icone} />
             {it.rotulo}

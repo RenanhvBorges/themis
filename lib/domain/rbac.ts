@@ -18,6 +18,11 @@ import { situacaoDoPrazo, type PrazoLike } from "./prazos";
 export type Perfil = "COMANDANTE" | "ADMIN" | "APURADOR" | "ARROLADO";
 const TODOS_PERFIS: Perfil[] = ["COMANDANTE", "ADMIN", "APURADOR", "ARROLADO"];
 
+// Únicos perfis atribuíveis a uma conta pelo cadastro de usuários — APURADOR
+// e ARROLADO nunca aparecem aqui, pelo motivo explicado no cabeçalho deste
+// arquivo (são sempre derivados da relação com um processo concreto).
+export const PERFIS_ATRIBUIVEIS: PerfilFuncional[] = ["COMANDANTE", "ADMIN"];
+
 export interface ContaRBAC {
   militarId: string;
   perfisFuncionais: PerfilFuncional[];
@@ -54,6 +59,11 @@ export function podeVerPainel(conta: ContaRBAC): boolean {
 }
 
 export function podeAbrirProcesso(conta: ContaRBAC): boolean {
+  return perfisGlobais(conta).includes("ADMIN");
+}
+
+/** Cadastro de militares/contas e edição de perfis funcionais — atribuição do Admin. */
+export function podeGerenciarUsuarios(conta: ContaRBAC): boolean {
   return perfisGlobais(conta).includes("ADMIN");
 }
 
