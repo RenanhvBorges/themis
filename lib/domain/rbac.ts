@@ -1,10 +1,18 @@
 // Controle de acesso por perfil (RF-24 / RNF-01 do artefato de referência).
 //
 // COMANDANTE e ADMIN são papéis funcionais concedidos à conta
-// (Conta.perfisFuncionais). APURADOR e ARROLADO nunca são "concedidos": são
-// sempre derivados da relação do militar com um processo específico
-// (processo.apuradorId / processo.arroladoId), porque qualquer militar pode
-// ser designado apurador ou vir a ser arrolado em um processo concreto.
+// (Conta.perfisFuncionais) e valem para qualquer processo da OM. APURADOR
+// também pode ser concedido à conta, mas com um significado mais restrito:
+// é só uma qualificação/elegibilidade (quem pode ser escolhido como
+// "Oficial apurador designado" ao autuar um processo) — NÃO concede, por
+// si só, poder de agir como apurador em processo algum. Esse poder
+// continua sempre derivado da relação com um processo específico
+// (processo.apuradorId), atribuída caso a caso na autuação. Por isso
+// `perfisEfetivos` abaixo ignora o APURADOR "global" de perfisFuncionais e
+// só o concede quando `processo.apuradorId === conta.militarId`.
+// ARROLADO nunca é concedido: é sempre derivado da mesma forma
+// (processo.arroladoId), porque qualquer militar pode vir a ser arrolado
+// em um processo concreto.
 //
 // `acessoTotalTeste` é uma bandeira exclusiva de homologação: faz a conta
 // se comportar como se detivesse os 4 perfis em qualquer processo, para uma
@@ -18,10 +26,12 @@ import { situacaoDoPrazo, type PrazoLike } from "./prazos";
 export type Perfil = "COMANDANTE" | "ADMIN" | "APURADOR" | "ARROLADO";
 const TODOS_PERFIS: Perfil[] = ["COMANDANTE", "ADMIN", "APURADOR", "ARROLADO"];
 
-// Únicos perfis atribuíveis a uma conta pelo cadastro de usuários — APURADOR
-// e ARROLADO nunca aparecem aqui, pelo motivo explicado no cabeçalho deste
-// arquivo (são sempre derivados da relação com um processo concreto).
-export const PERFIS_ATRIBUIVEIS: PerfilFuncional[] = ["COMANDANTE", "ADMIN"];
+// Perfis atribuíveis a uma conta pelo cadastro de usuários. ARROLADO nunca
+// aparece aqui, pelo motivo explicado no cabeçalho deste arquivo (é sempre
+// derivado da relação com um processo concreto — não há o que
+// "pré-qualificar"). APURADOR aparece, mas como elegibilidade, não como
+// concessão de poder — ver comentário acima sobre `perfisEfetivos`.
+export const PERFIS_ATRIBUIVEIS: PerfilFuncional[] = ["COMANDANTE", "ADMIN", "APURADOR"];
 
 export interface ContaRBAC {
   militarId: string;
@@ -44,7 +54,11 @@ export function perfisGlobais(conta: ContaRBAC): Perfil[] {
 /** Perfis que a conta efetivamente exerce sobre um processo concreto. */
 export function perfisEfetivos(conta: ContaRBAC, processo: ProcessoRBAC): Perfil[] {
   if (conta.acessoTotalTeste) return TODOS_PERFIS;
-  const perfis = new Set<Perfil>(conta.perfisFuncionais);
+  // O APURADOR de perfisFuncionais é só elegibilidade (ver cabeçalho do
+  // arquivo) — descartado aqui e só reconcedido quando a conta é de fato a
+  // apuradora designada deste processo, para não virar poder de ação em
+  // todos os processos da OM.
+  const perfis = new Set<Perfil>(conta.perfisFuncionais.filter((p) => p !== "APURADOR"));
   if (processo.apuradorId === conta.militarId) perfis.add("APURADOR");
   if (processo.arroladoId === conta.militarId) perfis.add("ARROLADO");
   return [...perfis];

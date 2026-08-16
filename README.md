@@ -78,15 +78,23 @@ inicial = **o próprio SARAM** (troca obrigatória no primeiro acesso).
 Quatro perfis — `COMANDANTE`, `ADMIN`, `APURADOR`, `ARROLADO`
 (`lib/domain/rbac.ts`):
 
-- **COMANDANTE** e **ADMIN** são papéis funcionais **concedidos** à conta
-  (`Conta.perfisFuncionais`) — refletem um cargo/função real na OM. O Admin
-  concede/revoga esses dois perfis e ativa/desativa contas pela tela
+- **COMANDANTE**, **ADMIN** e **APURADOR** são papéis funcionais
+  **concedidos** à conta (`Conta.perfisFuncionais`) pelo Admin, na tela
   "Usuários" (`/usuarios`), que também é onde novos militares/contas são
-  cadastrados (`lib/actions/usuarios.ts`).
-- **APURADOR** e **ARROLADO** **nunca são concedidos**: são sempre
-  derivados da relação do militar com um processo específico
-  (`processo.apuradorId` / `processo.arroladoId`), porque qualquer militar
-  pode ser designado apurador ou vir a ser arrolado num processo concreto.
+  cadastrados (`lib/actions/usuarios.ts`). COMANDANTE e ADMIN refletem um
+  cargo real na OM e valem para todos os processos. **APURADOR já é
+  diferente**: conceder esse perfil só marca **elegibilidade** — define
+  quem aparece para ser escolhido como "Oficial apurador designado" ao
+  autuar um processo (`app/(app)/processos/[id]/page.tsx`) — e não concede
+  poder de agir como apurador em processo algum. Esse poder continua
+  sempre derivado da relação com um processo específico
+  (`processo.apuradorId`), atribuída caso a caso na autuação; por isso
+  `perfisEfetivos()` em `lib/domain/rbac.ts` descarta o APURADOR "global"
+  de `perfisFuncionais` e só o reconcede quando a conta é de fato a
+  apuradora designada daquele processo.
+- **ARROLADO** **nunca é concedido**: é sempre derivado da relação do
+  militar com um processo específico (`processo.arroladoId`), porque
+  qualquer militar pode vir a ser arrolado num processo concreto.
 - `Conta.acessoTotalTeste` é uma bandeira **exclusiva de homologação**:
   faz a conta enxergar/agir como se detivesse os 4 perfis em qualquer
   processo — usada agora para uma única pessoa percorrer o fluxo inteiro
