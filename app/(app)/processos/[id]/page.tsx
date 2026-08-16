@@ -31,8 +31,14 @@ export default async function ProcessoDetalhePage({ params }: { params: Promise<
   }
   const { processo, acoes, hoje } = resultado;
 
+  // Elegíveis à designação de apurador: contas ativas com o perfil funcional
+  // APURADOR (concedido pelo Admin em /usuarios), ou com acessoTotalTeste
+  // (homologação). Ver lib/domain/rbac.ts sobre o que esse perfil concede.
   const candidatosApurador = await prisma.militar.findMany({
-    where: { omId: processo.omId },
+    where: {
+      omId: processo.omId,
+      conta: { ativa: true, OR: [{ perfisFuncionais: { has: "APURADOR" } }, { acessoTotalTeste: true }] },
+    },
     select: { id: true, nome: true, postoGrad: true, saram: true },
     orderBy: { nome: "asc" },
   });

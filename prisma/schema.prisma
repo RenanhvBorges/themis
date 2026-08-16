@@ -70,14 +70,21 @@ model Militar {
   @@map("militares")
 }
 
-// Papéis funcionais atribuíveis (organizacionais, não contextuais).
-// APURADOR e ARROLADO nunca são gravados aqui: são sempre derivados da
-// relação do militar com um Processo específico (processo.apuradorId /
-// processo.arroladoId), pois qualquer militar pode ser designado apurador
-// ou se tornar arrolado em um processo concreto.
+// Papéis funcionais atribuíveis pelo Admin (organizacionais, não
+// contextuais) via a tela de administração de usuários.
+// APURADOR aqui é uma qualificação/elegibilidade do militar — define quem
+// pode ser escolhido como "Oficial apurador designado" ao autuar um
+// processo — e não concede, por si só, poder de agir como apurador em
+// processo algum: esse poder continua sempre derivado da relação com um
+// Processo específico (processo.apuradorId), atribuída caso a caso na
+// autuação (ver lib/domain/rbac.ts, perfisEfetivos).
+// ARROLADO nunca é gravado aqui: é sempre derivado da mesma forma
+// (processo.arroladoId), pois qualquer militar pode vir a ser arrolado em
+// um processo concreto — não há o que "pré-qualificar" nesse caso.
 enum PerfilFuncional {
   COMANDANTE
   ADMIN
+  APURADOR
 }
 
 model Conta {

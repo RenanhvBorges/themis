@@ -68,8 +68,9 @@ export function NovoUsuarioForm() {
           ))}
         </div>
         <span className="hint">
-          Deixe sem marcação para um militar sem função de Comandante/Admin — ele ainda poderá ser designado
-          apurador ou figurar como arrolado em processos específicos.
+          Apurador marca elegibilidade — só quem tiver esse perfil aparece para ser escolhido como &ldquo;Oficial
+          apurador designado&rdquo; ao autuar um processo. Sem nenhum perfil marcado, o militar ainda poderá figurar
+          como arrolado em processos específicos.
         </span>
       </div>
 
