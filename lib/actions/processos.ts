@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { contaAtual } from "@/lib/auth/current";
-import { podeAbrirProcesso, type Perfil } from "@/lib/domain/rbac";
+import { podeAbrirProcesso, podeArquivarProcesso, podeExcluirProcesso, type Perfil } from "@/lib/domain/rbac";
 import { AcaoError, prepararAcao } from "./_shared";
 import * as t from "@/lib/domain/transicoes";
 import { hashConteudo } from "@/lib/domain/assinatura";
@@ -52,7 +52,7 @@ function textoObrigatorio(formData: FormData, campo: string): string {
 async function proximoNumeroProcesso(omId: string, sigla: string): Promise<string> {
   const ano = new Date().getFullYear();
   const existentes = await prisma.processo.findMany({
-    where: { omId, numero: { endsWith: `/${ano}` } },
+    where: { omId, numero: { endsWith: `/${ano}` }, excluidoEm: null },
     select: { numero: true },
   });
   let maior = 0;
@@ -354,5 +354,107 @@ export async function registrarCienciaNovaDecisaoAction(_prev: AcaoState, formDa
     await prisma.$transaction((tx) => t.registrarCienciaNovaDecisao(tx, processo, ctx));
   });
   if (res.ok) revalidarProcesso(processoId);
+  return res;
+}
+
+// ---------------------------------------------------------------------
+// Arquivamento sumário e exclusão (Admin) — meta-ações fora do fluxo do
+// PATD, não sujeitas a `acoesDisponiveis`/`prepararAcao`: o Admin pode
+// praticá-las a qualquer momento do andamento, e não apenas quando o
+// estado atual do processo oferece uma ação pendente.
+// ---------------------------------------------------------------------
+
+export async function arquivarProcessoAction(_prev: AcaoState, formData: FormData): Promise<AcaoState> {
+  const conta = await contaAtual();
+  if (!conta) redirect("/login");
+  if (!podeArquivarProcesso(conta)) return { erro: "Apenas o Admin pode arquivar processos." };
+
+  const processoId = textoObrigatorio(formData, "processoId");
+  const justificativa = textoObrigatorio(formData, "justificativa");
+
+  const res = await comTratamento(async () => {
+    const processo = await prisma.processo.findUnique({ where: { id: processoId } });
+    if (!processo || processo.omId !== conta.omId) throw new AcaoError("Processo não encontrado.");
+    if (processo.excluidoEm) throw new AcaoError("Processo excluído não pode ser arquivado.");
+    if (processo.arquivadoEm) throw new AcaoError("Processo já está arquivado.");
+    if (processo.status === "FINALIZADO") throw new AcaoError("Processo já está finalizado.");
+
+    const em = new Date();
+    await prisma.$transaction(async (tx) => {
+      await tx.processo.update({
+        where: { id: processoId },
+        data: {
+          status: "FINALIZADO",
+          finalizadoEm: em,
+          arquivadoEm: em,
+          arquivadoPorId: conta.militarId,
+          justificativaArquivamento: justificativa,
+        },
+      });
+      const hash = hashConteudo(`${processoId}|arquivamento|${em.toISOString()}`);
+      await tx.evento.create({
+        data: {
+          processoId,
+          em,
+          autorId: conta.militarId,
+          autorPerfil: "Admin",
+          acao: "Processo arquivado",
+          detalhe: `Arquivado sumariamente pelo Admin, sem instrução completa. Justificativa: ${justificativa}`,
+          hash,
+        },
+      });
+    });
+  });
+  if (res.ok) revalidarProcesso(processoId);
+  return res;
+}
+
+export async function excluirProcessoAction(_prev: AcaoState, formData: FormData): Promise<AcaoState> {
+  const conta = await contaAtual();
+  if (!conta) redirect("/login");
+  if (!podeExcluirProcesso(conta)) return { erro: "Apenas o Admin pode excluir processos." };
+
+  const processoId = textoObrigatorio(formData, "processoId");
+  const motivo = textoObrigatorio(formData, "motivo");
+
+  const res = await comTratamento(async () => {
+    const processo = await prisma.processo.findUnique({ where: { id: processoId } });
+    if (!processo || processo.omId !== conta.omId) throw new AcaoError("Processo não encontrado.");
+    if (processo.excluidoEm) throw new AcaoError("Processo já está excluído.");
+
+    const em = new Date();
+    await prisma.$transaction(async (tx) => {
+      await tx.processo.update({
+        where: { id: processoId },
+        data: {
+          excluidoEm: em,
+          excluidoPorId: conta.militarId,
+          motivoExclusao: motivo,
+          // O número original fica registrado no evento de auditoria abaixo,
+          // mas é liberado aqui (a coluna é única) para que o próximo
+          // processo lançado possa reaproveitá-lo — um processo excluído
+          // nunca deveria ter existido, então seu número não fica "queimado".
+          numero: `${processo.numero} (excluído)`,
+        },
+      });
+      const hash = hashConteudo(`${processoId}|exclusao|${em.toISOString()}`);
+      await tx.evento.create({
+        data: {
+          processoId,
+          em,
+          autorId: conta.militarId,
+          autorPerfil: "Admin",
+          acao: "Processo excluído",
+          detalhe: `Excluído pelo Admin (aberto por engano ou em teste). Número original: ${processo.numero}. Motivo: ${motivo}`,
+          hash,
+        },
+      });
+    });
+  });
+  if (res.ok) {
+    revalidatePath("/processos");
+    revalidatePath("/painel");
+    redirect("/processos");
+  }
   return res;
 }

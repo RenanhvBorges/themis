@@ -20,6 +20,7 @@ const selecaoLista = {
   recebidoApuradorEm: true,
   cienciaDecisaoEm: true,
   criadoEm: true,
+  arquivadoEm: true,
   arrolado: { select: { nome: true, postoGrad: true, secao: true } },
   apurador: { select: { nome: true, postoGrad: true } },
   prazos: {
@@ -31,7 +32,10 @@ const selecaoLista = {
 
 export async function listarProcessosVisiveis(conta: ContaAtual) {
   const processos = await prisma.processo.findMany({
-    where: { omId: conta.omId, ...whereVisivel(conta) },
+    // Excluídos (aberto por engano ou em teste) somem das listagens para
+    // todos os perfis — ver listarProcessosExcluidos para a trilha de
+    // auditoria restrita ao Admin.
+    where: { omId: conta.omId, excluidoEm: null, ...whereVisivel(conta) },
     select: selecaoLista,
     orderBy: { criadoEm: "desc" },
   });
@@ -54,5 +58,22 @@ export async function listarProcessosVisiveis(conta: ContaAtual) {
     };
     const acoes = acoesDisponiveis(estado, conta, hoje);
     return { ...p, prazoAtivo: p.prazos[0] ?? null, temAcaoPendente: acoes.length > 0 };
+  });
+}
+
+/** Trilha de auditoria de processos excluídos — restrita ao Admin (ver `podeExcluirProcesso`). */
+export async function listarProcessosExcluidos(conta: ContaAtual) {
+  return prisma.processo.findMany({
+    where: { omId: conta.omId, excluidoEm: { not: null } },
+    select: {
+      id: true,
+      numero: true,
+      relatoFato: true,
+      excluidoEm: true,
+      motivoExclusao: true,
+      arrolado: { select: { nome: true, postoGrad: true } },
+      excluidoPor: { select: { nome: true, postoGrad: true } },
+    },
+    orderBy: { excluidoEm: "desc" },
   });
 }

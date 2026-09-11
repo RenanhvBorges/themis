@@ -10,6 +10,8 @@ const processoInclude = {
   comandante: true,
   abertoPor: true,
   om: true,
+  arquivadoPor: true,
+  excluidoPor: true,
   defesa: true,
   relatorio: true,
   decisao: { include: { decididoPor: true } },
