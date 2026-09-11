@@ -56,6 +56,8 @@ model Militar {
   processosComoApurador          Processo[] @relation("ProcessoApurador")
   processosComoComandante        Processo[] @relation("ProcessoComandante")
   documentosDesignadosComandante Processo[] @relation("ProcessoAutorAbertura")
+  processosArquivados            Processo[] @relation("ProcessoArquivadoPor")
+  processosExcluidos             Processo[] @relation("ProcessoExcluidoPor")
 
   assinaturas Assinatura[]
   eventos     Evento[]
@@ -236,6 +238,24 @@ model Processo {
   inquiricoes Inquiricao[]
   anexosApoio AnexoApoio[]
 
+  // Arquivamento sumário pelo Admin — para casos em que se identifica de
+  // antemão que a justificativa é simples e não requer a instrução completa
+  // do PATD. Distinto do arquivamento decorrente de decisão de mérito
+  // (Decisao.tipo = ARQUIVAMENTO), que segue o rito normal. Ao arquivar, o
+  // processo é levado a FINALIZADO e não recebe mais ações.
+  arquivadoEm               DateTime?
+  arquivadoPorId            String?
+  arquivadoPor              Militar?  @relation("ProcessoArquivadoPor", fields: [arquivadoPorId], references: [id])
+  justificativaArquivamento String?
+
+  // Exclusão lógica pelo Admin — reservada a processos abertos por engano ou
+  // em teste. O registro permanece no banco para trilha de auditoria, mas
+  // desaparece das listagens e nunca conta na numeração de novos processos.
+  excluidoEm     DateTime?
+  excluidoPorId  String?
+  excluidoPor    Militar?  @relation("ProcessoExcluidoPor", fields: [excluidoPorId], references: [id])
+  motivoExclusao String?
+
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
@@ -243,6 +263,7 @@ model Processo {
   @@index([arroladoId])
   @@index([apuradorId])
   @@index([status])
+  @@index([excluidoEm])
   @@map("processos")
 }
 

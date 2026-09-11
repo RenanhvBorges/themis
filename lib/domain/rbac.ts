@@ -76,6 +76,20 @@ export function podeAbrirProcesso(conta: ContaRBAC): boolean {
   return perfisGlobais(conta).includes("ADMIN");
 }
 
+/**
+ * Arquivamento sumário: quando se identifica de antemão que a justificativa
+ * é simples e não requer a instrução completa do PATD. Exclusão: reservada
+ * a processos abertos por engano ou em teste. Ambos ficam restritos ao
+ * Admin, independentemente do processo específico.
+ */
+export function podeArquivarProcesso(conta: ContaRBAC): boolean {
+  return perfisGlobais(conta).includes("ADMIN");
+}
+
+export function podeExcluirProcesso(conta: ContaRBAC): boolean {
+  return perfisGlobais(conta).includes("ADMIN");
+}
+
 /** Cadastro de militares/contas e edição de perfis funcionais — atribuição do Admin. */
 export function podeGerenciarUsuarios(conta: ContaRBAC): boolean {
   return perfisGlobais(conta).includes("ADMIN");

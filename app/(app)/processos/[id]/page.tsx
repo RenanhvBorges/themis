@@ -6,9 +6,11 @@ import { carregarProcessoDetalhe } from "@/lib/queries/processo-detalhe";
 import { StatusChip, PrazoChip } from "@/components/chips";
 import { Trilha } from "@/components/Trilha";
 import { AcoesProcesso } from "@/components/AcoesProcesso";
+import { ProcessoAdmin } from "@/components/ProcessoAdmin";
 import { Icon } from "@/components/icons";
 import { ANEXOS, ITENS_ART10, ATENUANTES, AGRAVANTES, CLASSIFICACOES, PUNICOES, COMPORTAMENTOS } from "@/lib/domain/catalogo";
 import { formatarData, formatarDataHora } from "@/lib/domain/prazos";
+import { podeArquivarProcesso, podeExcluirProcesso } from "@/lib/domain/rbac";
 
 export default async function ProcessoDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const conta = await contaAtual();
@@ -62,14 +64,48 @@ export default async function ProcessoDetalhePage({ params }: { params: Promise<
         </div>
       </div>
 
-      <AcoesProcesso
-        processoId={processo.id}
-        acoes={acoes}
-        itensArt10={ITENS_ART10}
-        atenuantes={ATENUANTES}
-        agravantes={AGRAVANTES}
-        candidatosApurador={candidatosApurador}
-      />
+      {processo.excluidoEm ? (
+        <div className="card" style={{ borderColor: "var(--danger-border)" }}>
+          <div className="card-body">
+            <p style={{ fontSize: 13, lineHeight: 1.6 }}>
+              <b>Processo excluído</b> em {formatarDataHora(processo.excluidoEm.toISOString())} por{" "}
+              {processo.excluidoPor ? `${processo.excluidoPor.postoGrad} ${processo.excluidoPor.nome}` : "—"}.
+              {processo.motivoExclusao ? <> Motivo: {processo.motivoExclusao}</> : null}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {processo.arquivadoEm ? (
+        <div className="card">
+          <div className="card-body">
+            <p style={{ fontSize: 13, lineHeight: 1.6 }}>
+              <b>Processo arquivado sumariamente</b> em {formatarDataHora(processo.arquivadoEm.toISOString())} por{" "}
+              {processo.arquivadoPor ? `${processo.arquivadoPor.postoGrad} ${processo.arquivadoPor.nome}` : "—"}.
+              {processo.justificativaArquivamento ? <> Justificativa: {processo.justificativaArquivamento}</> : null}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {!processo.excluidoEm ? (
+        <AcoesProcesso
+          processoId={processo.id}
+          acoes={acoes}
+          itensArt10={ITENS_ART10}
+          atenuantes={ATENUANTES}
+          agravantes={AGRAVANTES}
+          candidatosApurador={candidatosApurador}
+        />
+      ) : null}
+
+      {!processo.excluidoEm ? (
+        <ProcessoAdmin
+          processoId={processo.id}
+          podeArquivar={podeArquivarProcesso(conta) && !processo.arquivadoEm && processo.status !== "FINALIZADO"}
+          podeExcluir={podeExcluirProcesso(conta)}
+        />
+      ) : null}
 
       <div className="grid-5-3">
         <div className="vstack" style={{ gap: 22 }}>

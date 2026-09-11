@@ -2,9 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { contaAtual } from "@/lib/auth/current";
 import { listarProcessosVisiveis } from "@/lib/queries/processos";
-import { StatusChip, PrazoChip } from "@/components/chips";
+import { StatusChip, PrazoChip, Chip } from "@/components/chips";
 import { hojeISO } from "@/lib/domain/prazos";
-import { podeAbrirProcesso } from "@/lib/domain/rbac";
+import { podeAbrirProcesso, podeExcluirProcesso } from "@/lib/domain/rbac";
 import { Icon } from "@/components/icons";
 
 export default async function ProcessosPage({
@@ -33,11 +33,18 @@ export default async function ProcessosPage({
           <h1>Processos</h1>
           <p>Processos administrativos de transgressão disciplinar visíveis ao seu perfil.</p>
         </div>
-        {podeAbrirProcesso(conta) ? (
-          <Link href="/processos/novo" className="btn btn-primary">
-            <Icon name="mais" /> Novo processo
-          </Link>
-        ) : null}
+        <div className="hstack" style={{ gap: 10 }}>
+          {podeExcluirProcesso(conta) ? (
+            <Link href="/processos/excluidos" className="btn btn-secondary">
+              Excluídos
+            </Link>
+          ) : null}
+          {podeAbrirProcesso(conta) ? (
+            <Link href="/processos/novo" className="btn btn-primary">
+              <Icon name="mais" /> Novo processo
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       <div className="card">
@@ -65,6 +72,7 @@ export default async function ProcessosPage({
                   <div className="top">
                     <span className="num">{p.numero}</span>
                     <StatusChip status={p.status} />
+                    {p.arquivadoEm ? <Chip tom="neutro" texto="Arquivado" /> : null}
                   </div>
                   <p className="fato">{p.relatoFato}</p>
                   <div className="meta">

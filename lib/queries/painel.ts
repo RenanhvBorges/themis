@@ -6,7 +6,7 @@ export async function carregarPainel(omId: string) {
   const hoje = hojeISO();
 
   const processos = await prisma.processo.findMany({
-    where: { omId },
+    where: { omId, excluidoEm: null },
     select: {
       id: true,
       numero: true,
