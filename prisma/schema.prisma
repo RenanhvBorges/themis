@@ -7,8 +7,14 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Conexão direta (porta 5432, sem PgBouncer) usada só para migrations.
+  // O pooler de transação do Supabase (porta 6543, usado em DATABASE_URL
+  // para runtime serverless) não sustenta o advisory lock que o
+  // `prisma migrate deploy` precisa durante o build — sem directUrl, o
+  // build falha ao tentar aplicar migrations em produção.
+  directUrl = env("DIRECT_URL")
 }
 
 // =========================================================================
