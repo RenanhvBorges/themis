@@ -356,3 +356,44 @@ export async function registrarCienciaNovaDecisaoAction(_prev: AcaoState, formDa
   if (res.ok) revalidarProcesso(processoId);
   return res;
 }
+
+// ---------------------------------------------------------------------
+// Exclusão de processo (apenas Admin)
+// ---------------------------------------------------------------------
+
+export async function excluirProcessoAction(_prev: AcaoState, formData: FormData): Promise<AcaoState> {
+  const conta = await contaAtual();
+  if (!conta) redirect("/login");
+  if (!podeAbrirProcesso(conta)) return { erro: "Apenas o Admin pode excluir processos." };
+
+  const processoId = textoObrigatorio(formData, "processoId");
+  const confirmacao = String(formData.get("confirmacao") ?? "").trim();
+
+  const res = await comTratamento(async () => {
+    const processo = await prisma.processo.findUnique({ where: { id: processoId }, select: { numero: true } });
+    if (!processo) throw new AcaoError("Processo não encontrado.");
+    if (confirmacao !== processo.numero) throw new AcaoError("Número do processo digitado não confere. A exclusão foi cancelada.");
+
+    // Exclusão em cascata (na ordem correta de dependências de FK)
+    await prisma.$transaction(async (tx) => {
+      await tx.assinatura.deleteMany({ where: { documento: { processoId } } });
+      await tx.documento.deleteMany({ where: { processoId } });
+      await tx.evento.deleteMany({ where: { processoId } });
+      await tx.prazo.deleteMany({ where: { processoId } });
+      await tx.inquiricao.deleteMany({ where: { processoId } });
+      await tx.anexoApoio.deleteMany({ where: { processoId } });
+      await tx.defesa.deleteMany({ where: { processoId } });
+      await tx.relatorioApuracao.deleteMany({ where: { processoId } });
+      await tx.decisao.deleteMany({ where: { processoId } });
+      await tx.pedidoReconsideracao.deleteMany({ where: { processoId } });
+      await tx.processo.delete({ where: { id: processoId } });
+    });
+  });
+
+  if (res.ok) {
+    revalidatePath("/processos");
+    revalidatePath("/painel");
+    redirect("/processos");
+  }
+  return res;
+}

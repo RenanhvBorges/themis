@@ -6,9 +6,11 @@ import { carregarProcessoDetalhe } from "@/lib/queries/processo-detalhe";
 import { StatusChip, PrazoChip } from "@/components/chips";
 import { Trilha } from "@/components/Trilha";
 import { AcoesProcesso } from "@/components/AcoesProcesso";
+import { BotaoExcluirProcesso } from "@/components/BotaoExcluirProcesso";
 import { Icon } from "@/components/icons";
 import { ANEXOS, ITENS_ART10, ATENUANTES, AGRAVANTES, CLASSIFICACOES, PUNICOES, COMPORTAMENTOS } from "@/lib/domain/catalogo";
 import { formatarData, formatarDataHora } from "@/lib/domain/prazos";
+import { podeAbrirProcesso } from "@/lib/domain/rbac";
 
 export default async function ProcessoDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const conta = await contaAtual();
@@ -59,6 +61,9 @@ export default async function ProcessoDetalhePage({ params }: { params: Promise<
         <div className="hstack" style={{ gap: 8 }}>
           <StatusChip status={processo.status} />
           <PrazoChip prazo={resultado.prazoAtivo ? { status: resultado.prazoAtivo.status, venceEm: resultado.prazoAtivo.venceEm.toISOString().slice(0, 10), prorrogadoAte: resultado.prazoAtivo.prorrogadoAte?.toISOString().slice(0, 10) ?? null, tipo: resultado.prazoAtivo.tipo } : null} hoje={hoje} detalhado />
+          {podeAbrirProcesso(conta) ? (
+            <BotaoExcluirProcesso processoId={processo.id} numeroProcesso={processo.numero} />
+          ) : null}
         </div>
       </div>
 

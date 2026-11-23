@@ -16,6 +16,7 @@ const ICONES: Record<string, string> = {
   cadeado: "rect:4.5,10,15,10,1.5|M8 10V7.5a4 4 0 0 1 8 0V10",
   clipe: "M8 12.5 15.5 5a3 3 0 0 1 4.24 4.24L11.5 17.5a5 5 0 1 1-7.07-7.07L12.5 2.36",
   x: "M6 6l12 12M18 6L6 18",
+  lixeira: "M3 6h18|M8 6V4h8v2|M19 6l-1 14H6L5 6",
 };
 
 function segmento(seg: string, i: number) {
