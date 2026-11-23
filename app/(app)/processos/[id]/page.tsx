@@ -186,6 +186,20 @@ export default async function ProcessoDetalhePage({ params }: { params: Promise<
                   <>
                     <p style={{ fontSize: 13, whiteSpace: "pre-wrap" }}>{processo.defesa.texto}</p>
                     <span className="hint">Apresentada em {formatarData(processo.defesa.apresentadaEm?.toISOString().slice(0, 10))}</span>
+                    {processo.anexosApoio.filter((a) => a.origem === "DEFESA").length ? (
+                      <div className="vstack" style={{ gap: 6, marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
+                        <span style={{ fontSize: 12, fontWeight: 600 }}>Documentos anexados à defesa:</span>
+                        <div className="hstack" style={{ gap: 8, flexWrap: "wrap" }}>
+                          {processo.anexosApoio
+                            .filter((a) => a.origem === "DEFESA")
+                            .map((anexo) => (
+                              <span key={anexo.id} className="chip tone-neutro" style={{ fontSize: 12 }}>
+                                <Icon name="clipe" /> {anexo.nome} ({(anexo.tamanhoBytes / 1024).toFixed(1)} KB)
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </>
                 )}
               </div>

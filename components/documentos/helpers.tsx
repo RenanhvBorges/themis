@@ -115,7 +115,7 @@ export function SigBloco({ nome, papel, assinatura }: { nome: string; papel: str
           eletrônica avançada).
         </div>
         <div className="meta">
-          Protocolo gov.br: {assinatura.protocolo} · Hash SHA-256: {assinatura.hash}
+          Protocolo digital: {assinatura.protocolo} · Hash SHA-256: {assinatura.hash}
         </div>
       </div>
     </div>

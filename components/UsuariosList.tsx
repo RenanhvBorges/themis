@@ -66,11 +66,10 @@ export function UsuariosList({ militares, contaIdAtual }: { militares: UsuarioLi
                   </div>
                 </div>
                 <div className="perfis">
+                  <Chip tom="sucesso" texto="Militar / Arrolado" />
                   {m.conta && m.conta.perfisFuncionais.length > 0 ? (
                     m.conta.perfisFuncionais.map((p) => <Chip key={p} tom="info" texto={ROTULO_PERFIL[p]} />)
-                  ) : (
-                    <Chip tom="neutro" texto="Sem perfil funcional" />
-                  )}
+                  ) : null}
                   {m.conta && !m.conta.ativa ? <Chip tom="perigo" texto="Inativa" /> : null}
                 </div>
                 <div className="actions">

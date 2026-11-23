@@ -1,12 +1,35 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { contaAtual, type ContaAtual } from "@/lib/auth/current";
+import { conferirSenha } from "@/lib/auth/senha";
 import { acoesDisponiveis, type EstadoProcessoParaAcoes, type Perfil } from "@/lib/domain/rbac";
 import { ROTULO_PERFIL } from "@/lib/domain/estados";
 import { hojeISO } from "@/lib/domain/prazos";
 import type { Ctx } from "@/lib/domain/transicoes";
 
 export class AcaoError extends Error {}
+
+export async function validarCredenciaisAssinatura(formData: FormData, conta: ContaAtual): Promise<void> {
+  const saram = String(formData.get("assinaturaSaram") ?? "").trim();
+  const senha = String(formData.get("assinaturaSenha") ?? "").trim();
+
+  if (!saram || !senha) {
+    throw new AcaoError("Informe o SARAM e a senha para confirmar a assinatura digital.");
+  }
+
+  if (saram !== conta.saram) {
+    throw new AcaoError("O SARAM informado não confere com o da conta autenticada.");
+  }
+
+  const contaDb = await prisma.conta.findUnique({
+    where: { id: conta.contaId },
+    select: { senhaHash: true },
+  });
+
+  if (!contaDb || !(await conferirSenha(senha, contaDb.senhaHash))) {
+    throw new AcaoError("Senha incorreta. A assinatura não pôde ser confirmada.");
+  }
+}
 
 function paraISOData(d: Date | null): string | null {
   return d ? d.toISOString().slice(0, 10) : null;
@@ -45,9 +68,18 @@ export interface AcaoPreparada {
 }
 
 /** Recarrega o processo, recomputa as ações permitidas e valida a ação pedida antes de qualquer escrita. */
-export async function prepararAcao(processoId: string, acaoId: string, perfilInformado: string): Promise<AcaoPreparada> {
+export async function prepararAcao(
+  processoId: string,
+  acaoId: string,
+  perfilInformado: string,
+  formData?: FormData,
+): Promise<AcaoPreparada> {
   const conta = await contaAtual();
   if (!conta) redirect("/login");
+
+  if (formData) {
+    await validarCredenciaisAssinatura(formData, conta);
+  }
 
   const processo = await carregarProcessoParaAcoes(processoId);
   if (!processo) throw new AcaoError("Processo não encontrado.");

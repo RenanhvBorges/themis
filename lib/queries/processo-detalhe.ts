@@ -17,6 +17,7 @@ const processoInclude = {
   decisao: { include: { decididoPor: true } },
   reconsideracao: true,
   inquiricoes: { include: { autor: true }, orderBy: { registradoEm: "asc" } },
+  anexosApoio: { include: { enviadoPor: true }, orderBy: { enviadoEm: "asc" } },
   documentos: {
     include: { assinaturas: { include: { signatario: true } } },
     orderBy: { criadoEm: "asc" },

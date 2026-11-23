@@ -58,8 +58,12 @@ export function NovoUsuarioForm() {
       </div>
 
       <div className="field">
-        <label>Perfis funcionais</label>
+        <label>Perfis funcionais / Acesso</label>
         <div className="check-list">
+          <label className="check-opt">
+            <input type="checkbox" checked disabled readOnly />
+            <span><b>Militar / Arrolado (Padrão)</b> — Permite login e acesso aos processos em que figurar como arrolado</span>
+          </label>
           {PERFIS_ATRIBUIVEIS.map((p) => (
             <label key={p} className="check-opt">
               <input type="checkbox" name="perfisFuncionais" value={p} />
@@ -68,9 +72,7 @@ export function NovoUsuarioForm() {
           ))}
         </div>
         <span className="hint">
-          Apurador marca elegibilidade — só quem tiver esse perfil aparece para ser escolhido como &ldquo;Oficial
-          apurador designado&rdquo; ao autuar um processo. Sem nenhum perfil marcado, o militar ainda poderá figurar
-          como arrolado em processos específicos.
+          Todo militar cadastrado possui acesso como Militar/Arrolado para poder logar, visualizar seus processos, assinar ciências e anexar defesa. Perfis adicionais como Apurador, Comandante e Admin concedem prerrogativas funcionais específicas.
         </span>
       </div>
 

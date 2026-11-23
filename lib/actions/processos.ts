@@ -135,7 +135,7 @@ export async function autuarAction(_prev: AcaoState, formData: FormData): Promis
   if (itensArt10.length === 0) return { erro: "Selecione ao menos um item do art. 10 do RDAER." };
 
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "AUTUAR", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "AUTUAR", perfil, formData);
     await prisma.$transaction((tx) => t.autuar(tx, processo, ctx, { apuradorId, itensArt10, portaria, boletim }));
   });
   if (res.ok) revalidarProcesso(processoId);
@@ -146,7 +146,7 @@ export async function registrarCienciaAction(_prev: AcaoState, formData: FormDat
   const processoId = textoObrigatorio(formData, "processoId");
   const perfil = textoObrigatorio(formData, "perfil") as Perfil;
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "REGISTRAR_CIENCIA", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "REGISTRAR_CIENCIA", perfil, formData);
     await prisma.$transaction((tx) => t.registrarCiencia(tx, processo, ctx));
   });
   if (res.ok) revalidarProcesso(processoId);
@@ -158,7 +158,7 @@ export async function registrarRecusaAction(_prev: AcaoState, formData: FormData
   const perfil = textoObrigatorio(formData, "perfil") as Perfil;
   const justificativa = textoObrigatorio(formData, "justificativa");
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "REGISTRAR_RECUSA", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "REGISTRAR_RECUSA", perfil, formData);
     await prisma.$transaction((tx) => t.registrarRecusaDeCiencia(tx, processo, ctx, justificativa));
   });
   if (res.ok) revalidarProcesso(processoId);
@@ -170,7 +170,7 @@ export async function prorrogarDefesaAction(_prev: AcaoState, formData: FormData
   const perfil = textoObrigatorio(formData, "perfil") as Perfil;
   const justificativa = textoObrigatorio(formData, "justificativa");
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "PRORROGAR_DEFESA", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "PRORROGAR_DEFESA", perfil, formData);
     await prisma.$transaction((tx) => t.prorrogarPrazoDefesa(tx, processo, ctx, justificativa));
   });
   if (res.ok) revalidarProcesso(processoId);
@@ -182,8 +182,27 @@ export async function apresentarDefesaAction(_prev: AcaoState, formData: FormDat
   const perfil = textoObrigatorio(formData, "perfil") as Perfil;
   const texto = textoObrigatorio(formData, "texto");
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "APRESENTAR_DEFESA", perfil);
-    await prisma.$transaction((tx) => t.apresentarDefesa(tx, processo, ctx, texto));
+    const { processo, ctx } = await prepararAcao(processoId, "APRESENTAR_DEFESA", perfil, formData);
+    await prisma.$transaction(async (tx) => {
+      await t.apresentarDefesa(tx, processo, ctx, texto);
+
+      // Anexos de apoio enviados pelo arrolado
+      const anexos = formData.getAll("anexos") as File[];
+      for (const file of anexos) {
+        if (file && file.size > 0 && file.name) {
+          await tx.anexoApoio.create({
+            data: {
+              processoId,
+              origem: "DEFESA",
+              nome: file.name,
+              tamanhoBytes: file.size,
+              tipoMime: file.type || "application/octet-stream",
+              enviadoPorId: ctx.autorId,
+            },
+          });
+        }
+      }
+    });
   });
   if (res.ok) revalidarProcesso(processoId);
   return res;
@@ -193,7 +212,7 @@ export async function declararPreclusaoAction(_prev: AcaoState, formData: FormDa
   const processoId = textoObrigatorio(formData, "processoId");
   const perfil = textoObrigatorio(formData, "perfil") as Perfil;
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "DECLARAR_PRECLUSAO", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "DECLARAR_PRECLUSAO", perfil, formData);
     await prisma.$transaction((tx) => t.declararPreclusao(tx, processo, ctx));
   });
   if (res.ok) revalidarProcesso(processoId);
@@ -204,7 +223,7 @@ export async function receberAutosAction(_prev: AcaoState, formData: FormData): 
   const processoId = textoObrigatorio(formData, "processoId");
   const perfil = textoObrigatorio(formData, "perfil") as Perfil;
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "RECEBER_AUTOS", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "RECEBER_AUTOS", perfil, formData);
     await prisma.$transaction((tx) => t.receberAutos(tx, processo, ctx));
   });
   if (res.ok) revalidarProcesso(processoId);
@@ -219,7 +238,7 @@ export async function registrarInquiricaoAction(_prev: AcaoState, formData: Form
   const postoInquirido = textoObrigatorio(formData, "postoInquirido");
   const texto = textoObrigatorio(formData, "texto");
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "REGISTRAR_INQUIRICAO", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "REGISTRAR_INQUIRICAO", perfil, formData);
     await prisma.$transaction((tx) => t.registrarInquiricao(tx, processo, ctx, { tipo, nomeInquirido, postoInquirido, texto }));
   });
   if (res.ok) revalidarProcesso(processoId);
@@ -240,7 +259,7 @@ export async function emitirRelatorioAction(_prev: AcaoState, formData: FormData
   const fundamentacao = textoObrigatorio(formData, "fundamentacao");
 
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "EMITIR_RELATORIO", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "EMITIR_RELATORIO", perfil, formData);
     await prisma.$transaction((tx) =>
       t.emitirRelatorio(tx, processo, ctx, {
         conclusao,
@@ -262,7 +281,7 @@ export async function receberRelatorioAction(_prev: AcaoState, formData: FormDat
   const processoId = textoObrigatorio(formData, "processoId");
   const perfil = textoObrigatorio(formData, "perfil") as Perfil;
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "RECEBER_RELATORIO", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "RECEBER_RELATORIO", perfil, formData);
     await prisma.$transaction((tx) => t.receberRelatorio(tx, processo, ctx));
   });
   if (res.ok) revalidarProcesso(processoId);
@@ -286,7 +305,7 @@ export async function decidirAction(_prev: AcaoState, formData: FormData): Promi
   if (tipo === "PUNICAO" && !punicao) return { erro: "Selecione a punição aplicada." };
 
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "DECIDIR", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "DECIDIR", perfil, formData);
     await prisma.$transaction((tx) =>
       t.decidir(tx, processo, ctx, { tipo, classificacao, punicao, dias, atenuantes, agravantes, fundamentacao, concordaComRelatorio, comportamentoResultante }),
     );
@@ -299,7 +318,7 @@ export async function registrarCienciaDecisaoAction(_prev: AcaoState, formData: 
   const processoId = textoObrigatorio(formData, "processoId");
   const perfil = textoObrigatorio(formData, "perfil") as Perfil;
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "REGISTRAR_CIENCIA_DECISAO", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "REGISTRAR_CIENCIA_DECISAO", perfil, formData);
     await prisma.$transaction((tx) => t.registrarCienciaDecisao(tx, processo, ctx));
   });
   if (res.ok) revalidarProcesso(processoId);
@@ -310,7 +329,7 @@ export async function encerrarPorPrazoAction(_prev: AcaoState, formData: FormDat
   const processoId = textoObrigatorio(formData, "processoId");
   const perfil = textoObrigatorio(formData, "perfil") as Perfil;
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "ENCERRAR_POR_PRAZO", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "ENCERRAR_POR_PRAZO", perfil, formData);
     await prisma.$transaction((tx) => t.encerrarPorDecursoDePrazo(tx, processo, ctx));
   });
   if (res.ok) revalidarProcesso(processoId);
@@ -322,7 +341,7 @@ export async function pedirReconsideracaoAction(_prev: AcaoState, formData: Form
   const perfil = textoObrigatorio(formData, "perfil") as Perfil;
   const razoes = textoObrigatorio(formData, "razoes");
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "PEDIR_RECONSIDERACAO", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "PEDIR_RECONSIDERACAO", perfil, formData);
     await prisma.$transaction((tx) => t.pedirReconsideracao(tx, processo, ctx, razoes));
   });
   if (res.ok) revalidarProcesso(processoId);
@@ -339,7 +358,7 @@ export async function julgarReconsideracaoAction(_prev: AcaoState, formData: For
   const dias = diasRaw ? Number(diasRaw) : null;
 
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "JULGAR_RECONSIDERACAO", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "JULGAR_RECONSIDERACAO", perfil, formData);
     await prisma.$transaction((tx) => t.julgarReconsideracao(tx, processo, ctx, { desfecho, fundamentacao, punicao, dias }));
   });
   if (res.ok) revalidarProcesso(processoId);
@@ -350,7 +369,7 @@ export async function registrarCienciaNovaDecisaoAction(_prev: AcaoState, formDa
   const processoId = textoObrigatorio(formData, "processoId");
   const perfil = textoObrigatorio(formData, "perfil") as Perfil;
   const res = await comTratamento(async () => {
-    const { processo, ctx } = await prepararAcao(processoId, "REGISTRAR_CIENCIA_NOVA_DECISAO", perfil);
+    const { processo, ctx } = await prepararAcao(processoId, "REGISTRAR_CIENCIA_NOVA_DECISAO", perfil, formData);
     await prisma.$transaction((tx) => t.registrarCienciaNovaDecisao(tx, processo, ctx));
   });
   if (res.ok) revalidarProcesso(processoId);

@@ -87,26 +87,76 @@ function SigNotice({ papel }: { papel: string }) {
   return (
     <div className="sig-box">
       <div className="sig-title">
-        <Icon name="assinatura" /> Assinatura eletrônica
+        <Icon name="assinatura" /> Assinatura digital do sistema Themis
       </div>
-      <p>
-        Ao confirmar, o ato é assinado como <b>{papel}</b> no nível avançado da Lei nº 14.063/2020, com registro de
-        identidade, data-hora e hash do documento na trilha de auditoria.
+      <p style={{ marginBottom: 12 }}>
+        Ao confirmar, o ato é assinado como <b>{papel}</b> com autenticação de credenciais, registro de data-hora e hash criptográfico SHA-256 na trilha de auditoria.
       </p>
+      <div className="form-grid-2">
+        <div className="field">
+          <label htmlFor="assinaturaSaram">SARAM do signatário</label>
+          <input
+            id="assinaturaSaram"
+            name="assinaturaSaram"
+            className="ctrl"
+            placeholder="Digite seu SARAM"
+            autoComplete="username"
+            required
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="assinaturaSenha">Senha da conta</label>
+          <input
+            id="assinaturaSenha"
+            name="assinaturaSenha"
+            type="password"
+            className="ctrl"
+            placeholder="Digite sua senha"
+            autoComplete="current-password"
+            required
+          />
+        </div>
+      </div>
     </div>
   );
 }
 
 function CheckList({ name, itens, coluna }: { name: string; itens: ItemCatalogo[]; coluna?: boolean }) {
+  const [busca, setBusca] = useState("");
+  const temMuitosItens = itens.length > 10;
+  
+  const filtrados = temMuitosItens && busca.trim()
+    ? itens.filter((it) => {
+        const termo = busca.toLowerCase();
+        const numStr = it.numero ? String(it.numero) : "";
+        return numStr.includes(termo) || it.resumo.toLowerCase().includes(termo);
+      })
+    : itens;
+
   return (
-    <div className="check-list">
-      {itens.map((it) => (
-        <label key={it.id} className="check-opt">
-          <input type="checkbox" name={name} value={it.id} />
-          <span>{it.numero ? `Item ${it.numero} — ` : it.letra ? `Letra "${it.letra}" — ` : ""}{it.resumo}</span>
-        </label>
-      ))}
-      {coluna ? null : null}
+    <div className="vstack" style={{ gap: 8, width: "100%" }}>
+      {temMuitosItens ? (
+        <input
+          type="search"
+          className="ctrl"
+          placeholder="Filtrar por número ou texto..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          style={{ marginBottom: 4 }}
+        />
+      ) : null}
+      <div className="check-list" style={{ maxHeight: temMuitosItens ? 280 : undefined, overflowY: temMuitosItens ? "auto" : undefined, border: temMuitosItens ? "1px solid var(--border)" : undefined, padding: temMuitosItens ? 8 : undefined, borderRadius: 6 }}>
+        {filtrados.length === 0 ? (
+          <div style={{ fontSize: 12, color: "var(--text-muted)", padding: 6 }}>Nenhum item correspondente à busca.</div>
+        ) : (
+          filtrados.map((it) => (
+            <label key={it.id} className="check-opt">
+              <input type="checkbox" name={name} value={it.id} />
+              <span>{it.numero ? `Item ${it.numero} — ` : it.letra ? `Letra "${it.letra}" — ` : ""}{it.resumo}</span>
+            </label>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -201,7 +251,7 @@ function FormularioAcao(props: FormularioAcaoProps) {
     case "DECLARAR_PRECLUSAO":
       return <FormConfirmar action={declararPreclusaoAction} {...{ processoId, perfil, setPerfil, acao, onDone }} papel="Oficial Apurador" texto="Certificar preclusão" />;
     case "APRESENTAR_DEFESA":
-      return <FormTexto action={apresentarDefesaAction} campo="texto" rotulo="Alegações de defesa" linhas={8} papel="Militar Arrolado" {...{ processoId, perfil, setPerfil, acao, onDone }} />;
+      return <FormDefesa {...{ processoId, perfil, setPerfil, acao, onDone }} />;
     case "RECEBER_AUTOS":
       return <FormConfirmar action={receberAutosAction} {...{ processoId, perfil, setPerfil, acao, onDone }} papel="Oficial Apurador" texto="Assinar recebimento" />;
     case "REGISTRAR_INQUIRICAO":
@@ -264,7 +314,50 @@ function FormConfirmar({
   );
 }
 
-function FormTexto({
+function FormDefesa({
+  processoId,
+  perfil,
+  setPerfil,
+  acao,
+  onDone,
+}: {
+  processoId: string;
+  perfil: Perfil;
+  setPerfil: (p: Perfil) => void;
+  acao: Acao;
+  onDone: () => void;
+}) {
+  const [state, formAction] = useAcaoForm(apresentarDefesaAction, onDone);
+  return (
+    <form action={formAction} encType="multipart/form-data">
+      <div className="modal-body">
+        <CampoOcultos processoId={processoId} perfil={perfil} />
+        <SeletorPerfil acao={acao} perfil={perfil} setPerfil={setPerfil} />
+        <div className="field">
+          <label htmlFor="texto">Alegações de defesa</label>
+          <textarea id="texto" name="texto" className="ctrl" rows={8} required placeholder="Redija as razões de fato e de direito de sua defesa..." />
+        </div>
+        <div className="field">
+          <label htmlFor="anexos">Documentos comprobatórios (anexos de apoio)</label>
+          <input
+            id="anexos"
+            name="anexos"
+            type="file"
+            className="ctrl"
+            multiple
+            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+          />
+          <span className="hint">Você pode selecionar um ou múltiplos arquivos para corroborar suas alegações.</span>
+        </div>
+        <SigNotice papel="Militar Arrolado" />
+        <ErroAcao erro={state.erro} />
+      </div>
+      <div className="modal-foot">
+        <BotaoConfirmar texto="Apresentar defesa" />
+      </div>
+    </form>
+  );
+}
   action,
   campo,
   rotulo,
