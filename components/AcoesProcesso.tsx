@@ -358,6 +358,8 @@ function FormDefesa({
     </form>
   );
 }
+
+function FormTexto({
   action,
   campo,
   rotulo,
